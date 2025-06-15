@@ -10,9 +10,18 @@
     "format": "biome format --write"
   },
   "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.515.0",
+    "neverthrow": "^8.2.0",
     "next": "15.3.3",
+    "prisma": "^6.9.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "reflect-metadata": "^0.2.2",
+    "ts-pattern": "^5.7.1",
+    "tsyringe": "^4.10.0",
+    "zod": "^3.25.64"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -22,5 +31,10 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client"
+    ]
   }
 }
