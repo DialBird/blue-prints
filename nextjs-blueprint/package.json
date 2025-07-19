@@ -40,7 +40,10 @@
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",
-      "prisma"
+      "prisma",
+      "@tailwindcss/oxide",
+      "prisma",
+      "sharp"
     ]
   }
 }
