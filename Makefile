@@ -39,6 +39,10 @@ clone:
 	@mkdir -p $(PROJECT_NAME)
 	@echo "📋 Copying files..."
 	@rsync -av --exclude='.git' --exclude='node_modules' --exclude='.DS_Store' $(BLUEPRINT_DIR)/ $(PROJECT_NAME)/
+	@echo "📋 Copying .kiro configuration..."
+	@if [ -d ".kiro" ]; then \
+		cp -r .kiro $(PROJECT_NAME)/; \
+	fi
 	@echo "📝 Updating package.json..."
 	@sed -i '' 's/"name": "nextjs-blueprint"/"name": "$(PROJECT_NAME)"/' $(PROJECT_NAME)/package.json
 	@if [ -n "$(DESCRIPTION)" ]; then \
