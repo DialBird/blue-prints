@@ -1,0 +1,60 @@
+# Dependabot設定
+# 各テンプレートディレクトリのnpm依存関係を週次で自動更新
+
+version: 2
+updates:
+  # Next.js テンプレート
+  - package-ecosystem: "npm"
+    directory: "/nextjs-blueprint"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "nextjs"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # マイナー・パッチ更新をグループ化（PRを減らす）
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    # セキュリティ更新は即座に対応
+    versioning-strategy: increase
+
+  # Vite テンプレート
+  - package-ecosystem: "npm"
+    directory: "/vite-blueprint"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "vite"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    versioning-strategy: increase
+
+  # GitHub Actions（将来のために）
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(deps)"
