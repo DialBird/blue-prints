@@ -1,0 +1,153 @@
+# Dependabot PRの自動マージ
+# patch/minor更新でCIが通ったら自動的にマージ
+
+name: Dependabot Auto-merge
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR番号（例: 123）。空欄の場合は全Dependabot PRを処理'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # 自動実行時（pull_requestイベント）: 個別PRを処理
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Auto-merge patch and minor updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr comment "$PR_URL" --body "⚠️ **Major version update detected.**
+
+          This PR contains a major version update and requires manual review.
+
+          Please check:
+          - [ ] Breaking changes in the changelog
+          - [ ] Migration guide (if any)
+          - [ ] Compatibility with the current codebase"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 手動実行時: 指定PRまたは全Dependabot PRを処理
+  get-prs:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      pr_numbers: ${{ steps.set-prs.outputs.pr_numbers }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Dependabot PRs
+        id: set-prs
+        run: |
+          if [ -n "${{ github.event.inputs.pr_number }}" ]; then
+            # 指定されたPR番号のみ処理（カンマ区切り対応、JSON配列形式に変換）
+            INPUT="${{ github.event.inputs.pr_number }}"
+            # カンマ区切りの場合は分割、そうでない場合は単一のPR番号として処理
+            if echo "$INPUT" | grep -q ","; then
+              PR_NUMBERS=$(echo "$INPUT" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != "")) | map(tonumber)')
+            else
+              PR_NUMBERS=$(echo "$INPUT" | jq -R 'tonumber' | jq -s '.')
+            fi
+          else
+            # 全Dependabot PRを取得
+            PR_NUMBERS=$(gh pr list --author "dependabot[bot]" --state open --json number --jq '.[].number' -R "${{ github.repository }}" | jq -s -c '.')
+          fi
+          
+          if [ -z "$PR_NUMBERS" ] || [ "$PR_NUMBERS" == "[]" ]; then
+            echo "No Dependabot PRs found"
+            echo "pr_numbers=[]" >> $GITHUB_OUTPUT
+          else
+            echo "Found PRs: $PR_NUMBERS"
+            echo "pr_numbers=$PR_NUMBERS" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 各PRを並列処理
+  process-pr:
+    needs: get-prs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && needs.get-prs.outputs.pr_numbers != '[]'
+    strategy:
+      matrix:
+        pr_number: ${{ fromJson(needs.get-prs.outputs.pr_numbers) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PR author
+        id: check
+        run: |
+          PR_AUTHOR=$(gh pr view ${{ matrix.pr_number }} --json author -q .author.login -R "${{ github.repository }}")
+          echo "PR Author: $PR_AUTHOR"
+          if [[ "$PR_AUTHOR" != *"dependabot"* ]]; then
+            echo "Skipping PR #${{ matrix.pr_number }} (not a Dependabot PR)"
+            echo "is_dependabot=false" >> $GITHUB_OUTPUT
+          else
+            echo "is_dependabot=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch Dependabot metadata
+        if: steps.check.outputs.is_dependabot == 'true'
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          pr-number: ${{ matrix.pr_number }}
+
+      - name: Get PR URL
+        if: steps.check.outputs.is_dependabot == 'true'
+        id: pr
+        run: |
+          PR_URL=$(gh pr view ${{ matrix.pr_number }} --json url -q .url -R "${{ github.repository }}")
+          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge patch and minor updates
+        if: steps.check.outputs.is_dependabot == 'true' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ steps.pr.outputs.url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on major updates
+        if: steps.check.outputs.is_dependabot == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr comment "$PR_URL" --body "⚠️ **Major version update detected.**
+
+          This PR contains a major version update and requires manual review.
+
+          Please check:
+          - [ ] Breaking changes in the changelog
+          - [ ] Migration guide (if any)
+          - [ ] Compatibility with the current codebase"
+        env:
+          PR_URL: ${{ steps.pr.outputs.url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

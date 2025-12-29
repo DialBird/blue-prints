@@ -3,7 +3,7 @@
 
 BLUEPRINT_DIR = nextjs-blueprint
 
-.PHONY: clone help
+.PHONY: clone help dependabot-merge
 
 # Default target
 help:
@@ -63,5 +63,9 @@ clone:
 # Catch-all target to handle project name arguments
 %:
 	@:
+
+# Dependabot PRの自動マージを手動実行
+dependabot-merge:
+	gh workflow run dependabot-auto-merge.yml
 
 
