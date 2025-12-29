@@ -23,6 +23,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Node.js 24.x を使用するため、v25以上は無視
+      - dependency-name: "@types/node"
+        versions: [">=25.0.0"]
     # セキュリティ更新は即座に対応
     versioning-strategy: increase
 
@@ -45,6 +49,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Node.js 24.x を使用するため、v25以上は無視
+      - dependency-name: "@types/node"
+        versions: [">=25.0.0"]
     versioning-strategy: increase
 
   # GitHub Actions（将来のために）
