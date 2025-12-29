@@ -103,7 +103,8 @@ jobs:
         id: check
         run: |
           PR_AUTHOR=$(gh pr view ${{ matrix.pr_number }} --json author -q .author.login -R "${{ github.repository }}")
-          if [ "$PR_AUTHOR" != "dependabot[bot]" ]; then
+          echo "PR Author: $PR_AUTHOR"
+          if [[ "$PR_AUTHOR" != *"dependabot"* ]]; then
             echo "Skipping PR #${{ matrix.pr_number }} (not a Dependabot PR)"
             echo "is_dependabot=false" >> $GITHUB_OUTPUT
           else
