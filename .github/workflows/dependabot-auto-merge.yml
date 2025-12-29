@@ -71,7 +71,7 @@ jobs:
             fi
           else
             # 全Dependabot PRを取得
-            PR_NUMBERS=$(gh pr list --author "dependabot[bot]" --state open --json number --jq '.[].number' | jq -s -c '.')
+            PR_NUMBERS=$(gh pr list --author "dependabot[bot]" --state open --json number --jq '.[].number' -R "${{ github.repository }}" | jq -s -c '.')
           fi
           
           if [ -z "$PR_NUMBERS" ] || [ "$PR_NUMBERS" == "[]" ]; then
@@ -96,7 +96,7 @@ jobs:
       - name: Check PR author
         id: check
         run: |
-          PR_AUTHOR=$(gh pr view ${{ matrix.pr_number }} --json author -q .author.login)
+          PR_AUTHOR=$(gh pr view ${{ matrix.pr_number }} --json author -q .author.login -R "${{ github.repository }}")
           if [ "$PR_AUTHOR" != "dependabot[bot]" ]; then
             echo "Skipping PR #${{ matrix.pr_number }} (not a Dependabot PR)"
             echo "is_dependabot=false" >> $GITHUB_OUTPUT
@@ -118,7 +118,7 @@ jobs:
         if: steps.check.outputs.is_dependabot == 'true'
         id: pr
         run: |
-          PR_URL=$(gh pr view ${{ matrix.pr_number }} --json url -q .url)
+          PR_URL=$(gh pr view ${{ matrix.pr_number }} --json url -q .url -R "${{ github.repository }}")
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
