@@ -26,7 +26,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.9",
     "@tailwindcss/postcss": "4.2.2",
-    "@types/node": "^22",
+    "@types/node": "^24",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "husky": "^9.1.7",
